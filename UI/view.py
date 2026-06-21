@@ -63,3 +63,60 @@ class View(ft.UserControl):
 
     def update_page(self):
         self._page.update()
+
+    def popola_dropdown_generi(self, lista_generi):
+        """lista_generi: lista di tuple (GenreId, Name) dal Model"""
+        self._ddGenre.options = [
+            ft.dropdown.Option(key=str(genere_id), text=nome)
+            for genere_id, nome in lista_generi
+        ]
+        self.update_page()
+
+    def get_genere_selezionato(self):
+        """Restituisce l'id del genere selezionato (come stringa), o None se non scelto"""
+        return self._ddGenre.value
+
+    def popola_dropdown_artisti(self, lista_artisti):
+        """lista_artisti: lista di oggetti Artist (con .artist_id e .name)"""
+        self._ddArtist.options = [
+            ft.dropdown.Option(key=str(artista.artist_id), text=artista.name)
+            for artista in lista_artisti
+        ]
+        self.update_page()
+
+    def get_artista_selezionato(self):
+        """Restituisce l'id dell'artista selezionato (come stringa), o None"""
+        return self._ddArtist.value
+
+    def mostra_errore(self, messaggio):
+        self.create_alert(messaggio)
+
+    def mostra_risultati_grafo(self, num_nodi, num_archi, artista_top, influenza_top, top_5):
+        self.txt_result.controls.clear()
+
+        self.txt_result.controls.append(ft.Text("Grafo correttamente creato:"))
+        self.txt_result.controls.append(ft.Text(f"Numero di nodi: {num_nodi}"))
+        self.txt_result.controls.append(ft.Text(f"Numero di archi: {num_archi}"))
+
+        if artista_top is not None:
+            self.txt_result.controls.append(
+                ft.Text(f"Artista più influente: {artista_top.name}, con influenza: {influenza_top}")
+            )
+
+        self.txt_result.controls.append(ft.Text("Top 5 archi:"))
+        for nodo_a, nodo_b, dati in top_5:
+            self.txt_result.controls.append(
+                ft.Text(f"{nodo_a.name} -> {nodo_b.name} : {dati['weight']}")
+            )
+
+        self.update_page()
+
+    def mostra_cammino(self, cammino):
+        self.txt_result.controls.clear()
+
+        self.txt_result.controls.append(ft.Text("Cammino trovato:"))
+        testo_cammino = " -> ".join(artista.name for artista in cammino)
+        self.txt_result.controls.append(ft.Text(testo_cammino))
+        self.txt_result.controls.append(ft.Text(f"Lunghezza (numero di nodi): {len(cammino)}"))
+
+        self.update_page()

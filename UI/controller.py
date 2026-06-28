@@ -8,75 +8,46 @@ class Controller:
         # the model, which implements the logic of the program and holds the data
         self._model = model
 
+
     def fillDDGenre(self):
-        """Chiamato dalla View all'avvio per popolare la tendina dei generi"""
-        lista_generi = self._model.get_generi()
-        self._view.popola_dropdown_generi(lista_generi)
+        genres = self._model.getGenres()
+        for genre in genres:
+            self._view._ddGenre.options.append(ft.dropdown.Option(genre))
+        self._view.update_page()
 
-    def handleCreaGrafo(self, e):
-        """Gestisce il click sul bottone 'Crea Grafo'"""
+    def fillDDArtist(self):
+        self._view._ddArtist.options.clear()
+        artists = self._model.getArtists()
+        for artist in artists:
+            self._view._ddArtist.options.append(ft.dropdown.Option(key=artist.ArtistID,text=artist.Name))
+        self._view.update_page()
 
-        # 1. Validazione input: l'utente deve aver selezionato un genere
-        genere_id = self._view.get_genere_selezionato()
+    def handleCammino(self,e):
+        bestPath = self._model.getBestPath(self._view._ddArtist.value)
+        self._view.txt_result.controls.append(ft.Text(f"Cammino massimo trovato ({len(bestPath)} nodi):"))
 
-        if genere_id is None:
-            self._view.mostra_errore("Seleziona un genere prima di procedere.")
-            return
+        for a in bestPath:
+            self._view.txt_result.controls.append(ft.Text(a.Name))
 
-        try:
-            genere_id = int(genere_id)
-        except (ValueError, TypeError):
-            self._view.mostra_errore("Genere non valido.")
-            return
+        self._view.update_page()
+    def handleCreaGrafo(self,e):
+        self._model.buildGraph(self._view._ddGenre.value)
+        self.fillDDArtist()
+        self._view.txt_result.controls.clear()
+        self._view.txt_result.controls.append(ft.Text("Grafo correttamente creato:"))
+        self._view.txt_result.controls.append(ft.Text(f"Numero di nodi:{self._model.getNumNodi()}"))
+        self._view.txt_result.controls.append(ft.Text(f"Numero di archi:{self._model.getNumEdges()}"))
 
-        # 2. Costruzione del grafo tramite il Model
-        num_nodi, num_archi = self._model.crea_grafo(genere_id)
+        bestartist, best = self._model.getBestArtist()
 
-        if num_nodi == 0:
-            self._view.mostra_errore("Nessun artista trovato per il genere selezionato.")
-            return
+        self._view.txt_result.controls.append(ft.Text(f"Artista più influente: {bestartist}, con influenza: {best}"))
 
-        # 3. Calcolo statistiche derivate dal grafo
-        artista_top, influenza_top = self._model.get_artista_piu_influente()
-        top_5 = self._model.get_top_5_archi()
+        topEdges = self._model.getTop5Edges()
 
-        # 4. Passo tutto alla View per la visualizzazione
-        self._view.mostra_risultati_grafo(num_nodi, num_archi, artista_top, influenza_top, top_5)
+        self._view.txt_result.controls.append(ft.Text("Top 5 archi:"))
 
-        # 5. Popolo la seconda tendina (artisti) con gli artisti del genere selezionato
-        lista_artisti = self._model.get_id_map().values()
-        self._view.popola_dropdown_artisti(lista_artisti)
+        for u, v, data in topEdges:
+            self._view.txt_result.controls.append(
+                ft.Text(f"{u.Name} -> {v.Name} : {data['weight']}"))
 
-    def handleCammino(self, e):
-        """Click su 'Trova Cammino'."""
-        if self._model.get_grafo() is None:
-            self._view.mostra_errore("Devi prima creare il grafo.")
-            return
-
-        # 1. Recupera il valore selezionato dal dropdown degli artisti
-        artista_id_str = self._view.get_artista_selezionato()
-
-        if artista_id_str is None:
-            self._view.mostra_errore("Seleziona un artista prima di procedere.")
-            return
-
-        # 2. Converti l'ID in intero in modo sicuro
-        try:
-            artista_id = int(artista_id_str)
-        except (ValueError, TypeError):
-            self._view.mostra_errore("ID Artista non valido.")
-            return
-
-        # 3. Recupera l'oggetto Artist reale dalla Identity Map del modello
-        id_map = self._model.get_id_map()
-        artista_iniziale = id_map.get(artista_id)
-
-        if artista_iniziale is None:
-            self._view.mostra_errore("L'artista selezionato non fa parte del grafo corrente.")
-            return
-
-        # 4. Lancia la ricorsione ed ottieni il cammino dei nodi
-        cammino_ottimo = self._model.trova_cammino(artista_iniziale)
-
-        # 5. Passa il cammino alla view per stamparlo
-        self._view.mostra_cammino(cammino_ottimo)
+        self._view.update_page()
